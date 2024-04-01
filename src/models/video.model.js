@@ -1,4 +1,5 @@
-const mongoose = reqire("mongoose");
+const mongoose  = require("mongoose");
+const {Schema} = require("mongoose");
 const mongooseAggregatePaginate = require("mongoose-aggregate-paginate-v2");
 
 
@@ -10,7 +11,7 @@ const videoSchema = new mongoose.Schema(
   },
   thumbnail: {
     type: String,
-    required: true,
+    default:"hmm raat ko uth uth rote h jb sara alam sota"
   },
   title: {
     type: String,
@@ -34,10 +35,11 @@ const videoSchema = new mongoose.Schema(
   },
   owner:{
     type:Schema.Types.ObjectId,
-    ref:"USer"
+    ref:"User"
   }
 });
 
 videoSchema.plugin(mongooseAggregatePaginate);
+const  Video= mongoose.model("Video", videoSchema)
+module.exports=Video
 
-export const Video=mongoose.model("Video",videoSchema);

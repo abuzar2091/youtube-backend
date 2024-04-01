@@ -10,7 +10,6 @@ const generateAccessAndRefreshToken = async (userId) => {
   const user = await User.findOne(userId);
   const accessToken = await user.generateAccessToken();
   const refreshToken = await user.generateRefreshToken();
-  //   console.log("tokeeen",accessToken,refreshToken);
   user.refreshToken = refreshToken;
   await user.save({ validateBeforeSave: false }); //To bypass the validations for token generation
   return { accessToken, refreshToken };
@@ -52,7 +51,7 @@ const registerUser = wrapAsyncHandler(async (req, res, next) => {
   const coverImage = await uploadOnCloudinary(coverImageLocalPath);
   console.log(avatar);
   if (!avatar) {
-    throw new ApiError(400, "Avatar url is required");
+    throw new ApiError(400, "Avatar is not uploaded");
   }
   const user = await User.create({
     username: username.toLowerCase(),
@@ -76,7 +75,7 @@ const registerUser = wrapAsyncHandler(async (req, res, next) => {
 
 const loginUser = wrapAsyncHandler(async (req, res) => {
   const { username, email, password } = req.body;
-
+  //const username="abuzar.aaas",email="ali@dgmail.coma",password="12341d";
   console.log(username, email, password);
   if (!username && !email) {
     throw new ApiError(400, "Username and Email is required");
@@ -97,20 +96,19 @@ const loginUser = wrapAsyncHandler(async (req, res) => {
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
     user._id
   );
-  console.log("checking pass2");
-  //   console.log("tokken",accessToken,refreshToken);
+
   const loggedInUser = await User.findOne(user._id).select(
     "-password -refreshToken"
   );
-  console.log("checking pass3");
+
   const options = {
     httpOnly: true,
     secure: true,
   };
   return res
     .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
+    .cookie("accessToken", accessToken)
+    .cookie("refreshToken", refreshToken)
     .json(
       new ApiResponse(200, { loggedInUser }, "User Logged In Successfully")
     );
@@ -120,7 +118,9 @@ const logoutUser = wrapAsyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
     {
-      $set: { refreshToken: undefined },
+      $unset: { refreshToken: 1 },
+      //   or
+      //   $set: { refreshToken: null },
     },
     {
       new: true,
@@ -181,7 +181,7 @@ const refreshAccessToken = async (req, res) => {
 
 const changeCurrentPassword = wrapAsyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;
-  const user = await User.findById(user.req?._id);
+  const user = await User.findById(req.user?._id);
   if (!user) {
     throw new ApiError(404, "Current User is not login");
   }
@@ -206,7 +206,7 @@ const updateAccountDetails = wrapAsyncHandler(async (req, res) => {
   if (!username || !email) {
     throw new ApiError(400, "username or email required");
   }
-  const user = await User.findById(
+  const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: { username, email },
@@ -269,7 +269,7 @@ const getUserChannelProfile = wrapAsyncHandler(async (req, res) => {
     throw new ApiError(404, "Username is missing");
   }
 
-  const channel = awaitUser.aggregate([
+  const channel = await User.aggregate([
     {
       $match: {
         username: username?.toLowerCase(),
@@ -361,11 +361,11 @@ const getUserWatchHistory = wrapAsyncHandler(async (req, res) => {
             },
           },
           {
-            $addFields:{
-                owner:{
-                    $first:"$owner"
-                }
-            }
+            $addFields: {
+              owner: {
+                $first: "$owner",
+              },
+            },
           },
         ],
       },
@@ -373,8 +373,10 @@ const getUserWatchHistory = wrapAsyncHandler(async (req, res) => {
   ]);
 
   return res
-  .status(200)
-  .json(new ApiResponse(200,user[0].watchHistory,"User watch History fetched"));
+    .status(200)
+    .json(
+      new ApiResponse(200, user[0].watchHistory, "User watch History fetched")
+    );
 });
 
 module.exports = {
@@ -384,11 +386,9 @@ module.exports = {
   refreshAccessToken,
   updateAccountDetails,
   getCurrentUser,
-  getCurrentUser,
   updateUserCoverImage,
   updateUserAvatar,
   changeCurrentPassword,
   getUserWatchHistory,
-  getUserChannelProfile
-
+  getUserChannelProfile,
 };

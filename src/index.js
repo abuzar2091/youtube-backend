@@ -1,11 +1,10 @@
-
-const express = require("express");
-const app = express();
-if (process.env.NODE_ENV !== "production") {
-    require("dotenv").config({path: "./.env"});
-  }
+// if (process.env.NODE_ENV !== "production") {
+//   }
+require("dotenv").config({path: "./.env"});
+const { app } = require("./app.js");
 const connectDB = require("./db/index.js");
 const port=process.env.PORT;
+
 connectDB()
 .then(()=>{
      app.listen(port,()=>{
@@ -14,6 +13,7 @@ connectDB()
 })
 .catch(err => console.log("MONGODB connection failed ",err));
 
+//first way to connect with DB
 // (async () => {
 //   try {
 //     mongoose.connect(`

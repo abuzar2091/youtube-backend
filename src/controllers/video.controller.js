@@ -8,13 +8,13 @@ const User = require("../models/user.model.js");
 const Comment = require("../models/comment.model.js");
 
 const getAllVideos = wrapAsyncHandler(async (req, res) => {
-  //const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
-  const page = 1,
-    limit = 10,
-    query = "",
-    sortBy = "",
-    sortType = "",
-    userId = "";
+  const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
+//   const page = 1,
+//     limit = 10,
+//     query = "",
+//     sortBy = "",
+//     sortType = "",
+//     userId = "";
   // Constructing the query object based on the query parameter
   const queryObject = query ? { $text: { $search: query } } : {};
 
@@ -105,7 +105,7 @@ const getVideoById = wrapAsyncHandler(async (req, res) => {
         localField: "owner", // Field in the video collection
         foreignField: "_id", // Field in the users collection
         as: "ownerInfo", // Alias for the joined user information
-      },
+    },
     },
     {
       $project: {
@@ -126,30 +126,33 @@ const updateVideo = wrapAsyncHandler(async (req, res) => {
   const { videoId } = req.params;
   const localVideoFilePath = req.file?.path;
   const { title, description, thumbnail } = req.body;
-  if (!title || !description || !thumbnail || !localVideoFilePath) {
+  if (!title || !description || !thumbnail) {
     throw new ApiError(404, "No Data is found for updation");
   }
-  if (!localVideoFilePath) {
-    throw new ApiError(400, "VideoFile is required");
+  let videoFile;
+  if (localVideoFilePath) {
+      videoFile = await uploadOnCloudinary(localVideoFilePath);
+      if (!videoFile) {
+          throw new ApiError(402, "videoFile is not uploded");
+      }
   }
-  const videoFile = await uploadOnCloudinary(localVideoFilePath);
-  if (!videoFile) {
-    throw new ApiError(402, "videoFile is not uploded");
+  const updatedObject = {
+    title,
+    description,
+    thumbnail, // Use provided description or empty string
+  };
+  if (videoFile) {
+      updatedObject.videoFile = videoFile.url;
   }
+  
+ 
   const video = await Video.findByIdAndUpdate(
-    req.user?._id,
-    {
-      $set: {
-        title: title ? title : "",
-        description: description ? description : "",
-        thumbnail: thumbnail ? thumbnail : "",
-        videoFile: videoFile.url,
-      },
-    },
+    videoId,
+   updatedObject,
     {
       new: true,
     }
-  ).select("-password -refreshToken");
+  );
   return res.status(200).json(new ApiResponse(200, video, "Video updated"));
 });
 

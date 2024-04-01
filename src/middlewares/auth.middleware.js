@@ -3,9 +3,9 @@ const ApiError = require("../utils/ApiError.js");
 const wrapAsyncHandler = require("../utils/wrapAsyncHandler.js");
 const User = require("../models/user.model.js");
 
-const verifyJWT = wrapAsyncHandler(async (req, res, next) => {
+const verifyJWT = wrapAsyncHandler(async (req,_, next) => {
   try {
-    console.log(req.cookies);
+      console.log(req.cookies);
     const token =req.cookies?.accessToken ||
       req.header("Authorization")?.replace("Bearer ", "");
       console.log(token);
@@ -13,7 +13,7 @@ const verifyJWT = wrapAsyncHandler(async (req, res, next) => {
       throw new ApiError(401, "Unauthorized request jsonweb token not found");
     }
     const decodedToken = await jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-     const user= User.findById(decodedToken?._id).select("-password -refreshToken");
+     const user= await User.findById(decodedToken?._id).select("-password -refreshToken");
      if(!user){
       throw new ApiError(404,"Invalid Access Token, User not found!");
      }
