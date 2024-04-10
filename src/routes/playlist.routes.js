@@ -12,11 +12,10 @@ const {
 } = require("../controllers/playlist.controller.js");
 const router = Router();
 router.route("/create-playlist").post(verifyJWT, createPlaylist);
-router.route("/addvideo").post(verifyJWT,upload.single("videoFile"), addVideoToPlaylist);
+router.route("/addvideotoplaylist").post(verifyJWT,addVideoToPlaylist);
 router.route("/remove-video/:videoId").put(verifyJWT, removeVideoFromPlaylist);
-router.route("/getplaylistvideo/:playlistId").post(verifyJWT, getPlaylistById);
-
-router.route("/getuserplaylistvideo/:userId").post(verifyJWT, getUserPlaylists);
+router.route("/getplaylistvideo/:playlistId").get(verifyJWT, getPlaylistById);
+router.route("/getuserplaylistvideo/:username").get(verifyJWT, getUserPlaylists);
 router.route("/delete/:playlistId").put(verifyJWT, deletePlaylist);
 router.route("/update/:playlistId").put(verifyJWT, updatePlaylist);
 

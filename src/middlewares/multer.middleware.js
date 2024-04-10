@@ -3,6 +3,7 @@ const multer = require("multer");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
+   //path to save the files in your server
     cb(null, "./public/temp");
   },
   filename: function (req, file, cb) {

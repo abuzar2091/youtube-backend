@@ -9,7 +9,7 @@ const playlistSchema = new mongoose.Schema({
     type:String,
     required:true
    },
-  video:[{
+  videos:[{
     type:mongoose.Schema.Types.ObjectId,
     ref:"Video"
   }],
@@ -21,9 +21,8 @@ const playlistSchema = new mongoose.Schema({
 },{timestamps:true});
 
 const Playlist = mongoose.model("Playlist", playlistSchema);
+module.exports = Playlist;
 
 //add plugin to enable pagination for aggregation queries
-
-module.exports = Playlist;
 
 

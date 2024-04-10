@@ -8,58 +8,93 @@ const User = require("../models/user.model.js");
 const Comment = require("../models/comment.model.js");
 
 const getAllVideos = wrapAsyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
+  const videos = await Video.aggregate([
+    {
+      $match: {},
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "ownerInfo",
+      },
+    },
+    // {
+    //   $addFields: {
+    //     avatar: { $arrayElemAt: ["$ownerInfo.avatar", 0] }, // Add avatar field from ownerInfo array
+    //   },
+    // },
+    // {
+    //   $project: {
+    //     ownerInfo: 0 // Exclude ownerInfo object
+    //   }
+    // }
+  ]);
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        videos,
+      },
+      "Successfully fetched videos."
+    )
+  );
+});
+// const getAllVideos = wrapAsyncHandler(async (req, res) => {
+//   //const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
 //   const page = 1,
 //     limit = 10,
 //     query = "",
 //     sortBy = "",
-//     sortType = "",
-//     userId = "";
-  // Constructing the query object based on the query parameter
-  const queryObject = query ? { $text: { $search: query } } : {};
+//     sortType = "";
 
-  // If userId is provided, add it to the query to filter videos by owner
-  if (userId && mongoose.Types.ObjectId.isValid(userId)) {
-    queryObject.owner = mongoose.Types.ObjectId(userId);
-  }
+//   // Constructing the query object based on the query parameter
+//   const queryObject = query ? { $text: { $search: query } } : {};
 
-  // Constructing the sort object based on the sortBy and sortType parameters
-  const sortObject = sortBy ? { [sortBy]: sortType === "desc" ? -1 : 1 } : {};
+//   // If userId is provided, add it to the query to filter videos by owner
+//   // if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+//   //   queryObject.owner = mongoose.Types.ObjectId(userId);
+//   // }
 
-  // Finding videos based on the constructed query object, applying pagination and sorting
-  const videos = await Video.find(queryObject)
-    .sort(sortObject)
-    .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+//   // Constructing the sort object based on the sortBy and sortType parameters
+//   const sortObject = sortBy ? { [sortBy]: sortType === "desc" ? -1 : 1 } : {};
 
-  // Counting total videos to calculate pagination metadata
-  const totalVideos = await Video.countDocuments(queryObject);
+//   // Finding videos based on the constructed query object, applying pagination and sorting
+//   const videos = await Video.find(queryObject)
+//     .sort(sortObject)
+//     .skip((page - 1) * limit)
+//     .limit(parseInt(limit));
 
-  // Sending the response with videos and pagination metadata
-  res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        {
-          videos,
-          totalPages: Math.ceil(totalVideos / limit),
-          currentPage: parseInt(page),
-        },
-        "Successfully fetched videos."
-      )
-    );
-});
+//   // Counting total videos to calculate pagination metadata
+//   const totalVideos = await Video.countDocuments(queryObject);
+
+//   // Sending the response with videos and pagination metadata
+//   res
+//     .status(200)
+//     .json(
+//       new ApiResponse(
+//         200,
+//         {
+//           videos,
+//           totalPages: Math.ceil(totalVideos / limit),
+//           currentPage: parseInt(page),
+//         },
+//         "Successfully fetched videos."
+//       )
+//     );
+// });
 
 const publishAVideo = wrapAsyncHandler(async (req, res) => {
-  const { title, description } = req.body;
-  // TODO: get video, upload to cloudinary, create video
-  // get the title, descrip
+  const { title, description, videotags } = req.body;
+  // TODO: get video, upload to cloudinary
+  // get the title, description
+  const tags = videotags.split(",").map((tag) => tag.trim());
+console.log("come");
   if (!title) {
     throw new ApiError("Set the title of Video");
   }
 
-  console.log(req.user);
   const localVideoFilePath = req.file?.path;
   if (!localVideoFilePath) {
     throw new ApiError(400, "VideoFile is required");
@@ -68,14 +103,13 @@ const publishAVideo = wrapAsyncHandler(async (req, res) => {
   if (!videoFile) {
     throw new ApiError(400, "videoFile is not uploded");
   }
+  console.log("url",videoFile);
 
-  if (!description) {
-    description = "";
-  }
   const createdVideo = await Video.create({
     title,
-    description,
-    videoFile: videoFile.url,
+    description: description || "",
+    videoUrl: videoFile.url,
+    tags,
     owner: req.user?._id,
     duration: Math.floor(videoFile.duration),
   });
@@ -86,7 +120,33 @@ const publishAVideo = wrapAsyncHandler(async (req, res) => {
     .status(201)
     .json(new ApiResponse(200, createdVideo, "Video Uploaded Successfully"));
 });
-
+const getChannelVideos = wrapAsyncHandler(async (req, res) => {
+  const { username } = req.params;
+  console.log(username);
+  // console.log("user name inside video fetch ",username);
+  const user=await User.findOne({username});
+  // console.log("come here",user);
+  if(!user){
+    throw new ApiError(404,"User did not find with this username");
+  }
+  const allChannelVideos = await Video.aggregate([
+    {
+     
+          $match: {
+            owner: new mongoose.Types.ObjectId(user._id), // Convert videoId to ObjectId
+          },
+      
+      }
+    
+  ]).sort("-createdAt");
+  if (!allChannelVideos) {
+    return ApiError("No video Found");
+  }
+  // console.log(allChannelVideos);
+  return res
+    .status(200)
+    .json(new ApiResponse(200, allChannelVideos, "Channel Video fetched"));
+});
 const getVideoById = wrapAsyncHandler(async (req, res) => {
   const { videoId } = req.params;
   //TODO: get video by id
@@ -105,7 +165,7 @@ const getVideoById = wrapAsyncHandler(async (req, res) => {
         localField: "owner", // Field in the video collection
         foreignField: "_id", // Field in the users collection
         as: "ownerInfo", // Alias for the joined user information
-    },
+      },
     },
     {
       $project: {
@@ -131,10 +191,10 @@ const updateVideo = wrapAsyncHandler(async (req, res) => {
   }
   let videoFile;
   if (localVideoFilePath) {
-      videoFile = await uploadOnCloudinary(localVideoFilePath);
-      if (!videoFile) {
-          throw new ApiError(402, "videoFile is not uploded");
-      }
+    videoFile = await uploadOnCloudinary(localVideoFilePath);
+    if (!videoFile) {
+      throw new ApiError(402, "videoFile is not uploded");
+    }
   }
   const updatedObject = {
     title,
@@ -142,17 +202,12 @@ const updateVideo = wrapAsyncHandler(async (req, res) => {
     thumbnail, // Use provided description or empty string
   };
   if (videoFile) {
-      updatedObject.videoFile = videoFile.url;
+    updatedObject.videoFile = videoFile.url;
   }
-  
- 
-  const video = await Video.findByIdAndUpdate(
-    videoId,
-   updatedObject,
-    {
-      new: true,
-    }
-  );
+
+  const video = await Video.findByIdAndUpdate(videoId, updatedObject, {
+    new: true,
+  });
   return res.status(200).json(new ApiResponse(200, video, "Video updated"));
 });
 
@@ -197,4 +252,5 @@ module.exports = {
   deleteVideo,
   togglePublishStatus,
   getAllVideos,
+  getChannelVideos,
 };

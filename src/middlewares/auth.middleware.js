@@ -5,7 +5,7 @@ const User = require("../models/user.model.js");
 
 const verifyJWT = wrapAsyncHandler(async (req,_, next) => {
   try {
-      console.log(req.cookies);
+      // console.log("verifying",req.cookies);
     const token =req.cookies?.accessToken ||
       req.header("Authorization")?.replace("Bearer ", "");
       console.log(token);
@@ -18,6 +18,7 @@ const verifyJWT = wrapAsyncHandler(async (req,_, next) => {
       throw new ApiError(404,"Invalid Access Token, User not found!");
      }
      req.user= user;
+     console.log("verified done!",req.user);
       next();
   } catch (error) {
     throw new ApiError(404, error?.message || "Invalid access Token");

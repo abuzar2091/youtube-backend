@@ -17,13 +17,15 @@ app.use(cookieParser());
  const playlistRouter=require('./routes/playlist.routes.js');
  const commentRouter=require('./routes/comment.routes.js');
  const likeRouter=require('./routes/like.routes.js');
+ const tweetRouter=require('./routes/tweet.routes.js');
  const dashboardRouter=require('./routes/dashboard.routes.js');
  const healthcheckRouter=require('./routes/healthcheck.routes.js');
-app.use("/users",userRouter)
-app.use("/videos",videoRouter)
-app.use("/playlist",playlistRouter);
-app.use("/comment",commentRouter);
-app.use("/like",likeRouter)
-app.use("/dashboard",dashboardRouter)
-app.use("/health",healthcheckRouter)
+app.use("/api/users",userRouter)
+app.use("/api/tweet",tweetRouter)
+app.use("/api/videos",videoRouter)
+app.use("/api/playlist",playlistRouter);
+app.use("/api/comment",commentRouter);
+app.use("/api/like",likeRouter)
+app.use("/api/dashboard",dashboardRouter)
+app.use("/api/health",healthcheckRouter)
 module.exports = {app};

@@ -15,7 +15,7 @@ const {
 } = require("../controllers/user.controller.js");
 const verifyJWT = require("../middlewares/auth.middleware.js");
 const router = Router();
-router.route("/").post(
+router.route("/signup").post(
   upload.fields([
     { name: "avatar", maxCount: 1 },
     { name: "coverImage", maxCount: 1 },
@@ -34,6 +34,6 @@ router
 router
   .route("/cover-image")
   .patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage);
-router.route("/c/:username").get(verifyJWT, getUserChannelProfile);
+router.route("/channel/:username").get(verifyJWT, getUserChannelProfile);
 router.route("/watch-history").get(verifyJWT, getUserWatchHistory);
 module.exports = router;

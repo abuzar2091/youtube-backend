@@ -16,14 +16,16 @@ const generateAccessAndRefreshToken = async (userId) => {
 };
 
 const registerUser = wrapAsyncHandler(async (req, res, next) => {
-  //get the user info from frontend
-  //perform validation--not empty
-  //check if user already exits:username ,email
-  // get the local url and store it on the cloudinary
-  // create user obj and save in db
-  //remove password and refresh token from the respone
-  //check for the user creation
-  //return respone
+  //   //get the user info from frontend
+  //   //perform validation--not empty
+  //   //check if user already exits:username ,email
+  //   // get the local url and store it on the cloudinary
+  //   // create user obj and save in db
+  //   //remove password and refresh token from the respone
+  //   //check for the user creation
+  //   //return respone
+  console.log(req.body);
+  console.log("lets start");
 
   const { username, email, password, fullName } = req.body;
   if (
@@ -40,7 +42,7 @@ const registerUser = wrapAsyncHandler(async (req, res, next) => {
   console.log(req.files);
   const avatarLocalPath = req.files?.avatar[0]?.path;
 
-  let coverImageLocalPath;
+  let coverImageLocalPath = "";
   if (req.files && req.files.coverImage && req.files.coverImage.length > 0) {
     coverImageLocalPath = req.files?.coverImage[0]?.path || "";
   }
@@ -48,11 +50,13 @@ const registerUser = wrapAsyncHandler(async (req, res, next) => {
     throw new ApiError(400, "Avatar file is required");
   }
   const avatar = await uploadOnCloudinary(avatarLocalPath);
+
   const coverImage = await uploadOnCloudinary(coverImageLocalPath);
   console.log(avatar);
   if (!avatar) {
     throw new ApiError(400, "Avatar is not uploaded");
   }
+  //const coverImage = "";
   const user = await User.create({
     username: username.toLowerCase(),
     fullName,
@@ -67,32 +71,6 @@ const registerUser = wrapAsyncHandler(async (req, res, next) => {
   if (!createdUser) {
     throw new ApiError(500, "Something went wrong while registering the user");
   }
-
-  res
-    .status(201)
-    .json(new ApiResponse(200, createdUser, "User Registered Successfully"));
-});
-
-const loginUser = wrapAsyncHandler(async (req, res) => {
-  const { username, email, password } = req.body;
-  //const username="abuzar.aaas",email="ali@dgmail.coma",password="12341d";
-  console.log(username, email, password);
-  if (!username && !email) {
-    throw new ApiError(400, "Username and Email is required");
-  }
-  const user = await User.findOne({
-    $or: [{ username }, { email }],
-  });
-  if (!user) {
-    throw new ApiError(404, "User does not exits do signup first");
-  }
-  //console.log(user);
-  const isPasswordValid = await user.isPasswordCorrect(password);
-  console.log(isPasswordValid);
-  if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid User Credentails");
-  }
-  console.log("checking pass");
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
     user._id
   );
@@ -107,8 +85,52 @@ const loginUser = wrapAsyncHandler(async (req, res) => {
   };
   return res
     .status(200)
-    .cookie("accessToken", accessToken)
-    .cookie("refreshToken", refreshToken)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        { loggedInUser },
+        "User Registered Successfully"
+      )
+    );
+});
+
+const loginUser = wrapAsyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+  //const username="abuzar.aaas",email="ali@dgmail.coma",password="12341d";
+  console.log(email, password);
+  if (!email) {
+    throw new ApiError(400, "Email is required");
+  }
+  const user = await User.findOne({
+    $or: [{ email }],
+  });
+  if (!user) {
+    throw new ApiError(404, "User does not exits do signup first");
+  }
+  //console.log(user);
+  const isPasswordValid = await user.isPasswordCorrect(password);
+  console.log(isPasswordValid);
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Invalid User Credentails");
+  }
+  const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+    user._id
+  );
+
+  const loggedInUser = await User.findOne(user._id).select(
+    "-password -refreshToken"
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
     .json(
       new ApiResponse(200, { loggedInUser }, "User Logged In Successfully")
     );
@@ -265,6 +287,7 @@ const updateUserCoverImage = wrapAsyncHandler((req, res) => {
 
 const getUserChannelProfile = wrapAsyncHandler(async (req, res) => {
   const { username } = req.params;
+  console.log(username);
   if (!username?.trim()) {
     throw new ApiError(404, "Username is missing");
   }
@@ -310,7 +333,7 @@ const getUserChannelProfile = wrapAsyncHandler(async (req, res) => {
     },
     {
       $project: {
-        fullName: 1,
+        channelName: 1,
         username: 1,
         email: 1,
         channelsSubscribedToCount: 1,
@@ -318,11 +341,13 @@ const getUserChannelProfile = wrapAsyncHandler(async (req, res) => {
         isSubscribed: 1,
         avatar: 1,
         coverImage: 1,
+        createdAt: 1,
       },
     },
   ]);
+
   if (!channel?.length) {
-    throw new ApiError("Channel does not exit");
+    throw new ApiError(404, "Channel does not exit");
   }
   return res
     .status(200)
