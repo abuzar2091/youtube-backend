@@ -6,11 +6,11 @@ https://app.eraser.io/workspace/YtPqZ1VogxGy1jzIDkzj
 This repository contains the backend implementation for YouTube, a platform where users can create channels and upload videos. The uploaded videos are securely saved on Cloudinary for efficient storage and retrieval.
 
 # Features:
-User authentication and authorization system.
-Channel creation functionality for users.
-Video upload capability with integration with Cloudinary for cloud-based storage.
-Robust API endpoints for managing users, channels, and videos.
-Secure handling of user data and video content.
+- User authentication and authorization system.
+- Channel creation functionality for users.
+- Video upload capability with integration with Cloudinary for cloud-based storage.
+- Robust API endpoints for managing users, channels, and videos.
+- Secure handling of user data and video content.
 
 # Technologies used:
 
@@ -22,8 +22,8 @@ Secure handling of user data and video content.
 
 # Setup Instructions
 To get started with this repository, follow these steps:
-1. Clone the repository to your local machine
  ```bash
+1. Clone the repository to your local machine
 - git clone <repository_url>
 2. Navigate to the project directory
 - cd <project_name>
@@ -33,3 +33,13 @@ To get started with this repository, follow these steps:
 5. you can start the development server by running:
 - npm run dev
 This command will start the server and enable you to begin development or testing tasks.
+```
+# Backend Testing ScreenShots
+- signup
+![signup](image.png)
+- signup response
+![response](image-1.png)
+- login
+![login](image-2.png)
+- get all videos
+![get all videos](image-3.png)

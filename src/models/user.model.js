@@ -71,7 +71,6 @@ userSchema.methods.generateAccessToken = async function () {
   {
     expiresIn:process.env.ACCESS_TOKEN_EXPIRY
   }
-
   );
 };
 // console.log("token",process.env.ACCESS_TOKEN_EXPIRY);
